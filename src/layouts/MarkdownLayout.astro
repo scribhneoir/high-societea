@@ -1,0 +1,221 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import GrungeTitle from '../components/GrungeTitle.astro';
+
+/** Layout for Markdown pages — set `layout: ../layouts/MarkdownLayout.astro` in
+ *  a page's frontmatter, which Astro then hands to this file as `frontmatter`. */
+interface Props {
+	frontmatter: {
+		title: string;
+		description?: string;
+		/** Small caps line above the title. */
+		eyebrow?: string;
+		/** Two columns above 48rem. Wide blocks are kept whole across the break,
+		    but one taller than the column still leaves a gap — turn this off for
+		    pages built around them. */
+		columns?: boolean;
+		/** Sunk capital on the opening paragraph. Turn off when the page opens
+		    with something too short to sink three lines into. */
+		dropcap?: boolean;
+		/** Larger, tighter setting on the opening paragraph. Independent of
+		    `dropcap`, so the cap works either way. */
+		lead?: boolean;
+		/** Blackletter masthead instead of the display face — the front page only. */
+		grunge?: boolean;
+		/** Chapters either side, shown in the foot of the page. Either may be
+		    omitted — the first and last chapters each have only one neighbour. */
+		prev?: ChapterLink;
+		next?: ChapterLink;
+	};
+}
+
+interface ChapterLink {
+	href: string;
+	label: string;
+}
+
+const {
+	title,
+	description,
+	eyebrow,
+	columns = true,
+	dropcap = true,
+	lead = false,
+	grunge = false,
+	prev,
+	next,
+} = Astro.props.frontmatter;
+
+// The grunge title stacks two words: "High Societea" gives High / Societea.
+const [first, ...rest] = title.split(' ');
+const second = rest.join(' ');
+---
+
+<BaseLayout title={title} description={description}>
+	<main class="page">
+		<header class:list={['masthead', { 'masthead--grunge': grunge }]}>
+			{eyebrow && <p class="eyebrow">{eyebrow}</p>}
+			{
+				grunge ? (
+					<GrungeTitle first={first} second={second} size="var(--masthead-title-size)" />
+				) : (
+					<h1>{title}</h1>
+				)
+			}
+		</header>
+
+		<article
+			class:list={[
+				'prose',
+				{ 'prose-columns': columns, 'prose-lead': lead, 'prose-dropcap': dropcap },
+			]}
+		>
+			<slot />
+		</article>
+
+		{
+			(prev || next) && (
+				<nav class="chapters" aria-label="Chapters">
+					{prev && (
+						<a class="chapters__link chapters__link--prev" href={prev.href}>
+							<span class="eyebrow">Back to</span>
+							<span class="chapters__title">{prev.label}</span>
+						</a>
+					)}
+					<a class="chapters__link chapters__link--home" href="/">
+						<span class="eyebrow">Contents</span>
+						<span class="chapters__title">High Societea</span>
+					</a>
+					{next && (
+						<a class="chapters__link chapters__link--next" href={next.href}>
+							<span class="eyebrow">On to</span>
+							<span class="chapters__title">{next.label}</span>
+						</a>
+					)}
+				</nav>
+			)
+		}
+	</main>
+</BaseLayout>
+
+<style>
+	/* Close under the title, so the eyebrow, the title and the opening line read
+	   as one block rather than as a masthead with a page under it. */
+	.masthead {
+		margin-bottom: clamp(0.75rem, 1.5vw, 1.15rem);
+	}
+
+	.masthead .eyebrow {
+		margin: 0 0 1rem;
+	}
+
+	/* The global scale starts at the section heading, since that's the largest
+	   thing Markdown sets — the page title is bigger, and sized here.
+
+	   Its bottom margin goes: headings carry 0.5em to separate them from their
+	   own body text, which at this size is another 2rem stacked under the
+	   masthead's margin, and the space below the title reads as the sum. The
+	   masthead's own margin is the one control. */
+	.masthead h1 {
+		font-size: clamp(2.5rem, 6vw, 4rem);
+		font-weight: var(--weight-display-strong);
+		letter-spacing: -0.015em;
+		margin-bottom: 0;
+	}
+
+	/* The title's descenders droop over the body below it: GrungeTitle's .print
+	   pads its box past the letterforms and takes that space back in margin, so
+	   they overflow without occupying layout height. --masthead-gap tunes it —
+	   negative pulls the body further up. z-index keeps the title painting over
+	   the body, which comes later in the DOM and would otherwise win. */
+	.masthead--grunge {
+		--masthead-drop: clamp(1rem, 3vw, 2.5rem);
+		--masthead-gap: 0rem;
+
+		/* One column, so the title fills the measure. "Societea" runs 3.145x its
+		   own font-size wide with the stagger and tilt — measured off a render;
+		   3.225 leaves a little air, matching the two-column fill of 97.5%.
+
+		   Off the column rather than a flat vw because the gutter is pinned at
+		   1.5rem below 600px, so the column is a *varying* fraction of the
+		   viewport and one vw value would only fit at one screen size. */
+		--masthead-title-size: calc((100vw - 2 * var(--gutter)) / 3.225);
+
+		position: relative;
+		z-index: 1;
+		margin-top: var(--masthead-drop);
+		margin-bottom: var(--masthead-gap);
+	}
+
+	/* Spanning one of two columns — half the ratio. The 10rem cap stops it
+	   growing once .page hits its 72rem max-width. */
+	@media (min-width: 48rem) {
+		.masthead--grunge {
+			--masthead-title-size: clamp(5rem, 13vw, 10rem);
+		}
+	}
+
+	/* Three fixed cells rather than a flex row with space-between: the middle
+	   link stays centred on the page whether or not it has neighbours on both
+	   sides, so the first and last chapters don't hang it off to one side. */
+	.chapters {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: baseline;
+		gap: 1rem var(--column-gap);
+		margin-top: var(--space-section);
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--rule);
+	}
+
+	.chapters__link {
+		display: block;
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	.chapters__link .eyebrow {
+		display: block;
+		margin: 0 0 0.4rem;
+	}
+
+	.chapters__title {
+		font-family: var(--font-display);
+		font-size: 1.15rem;
+		font-weight: var(--weight-display);
+		line-height: var(--leading-tight);
+		color: var(--title);
+	}
+
+	.chapters__link:hover .chapters__title {
+		color: var(--accent);
+	}
+
+	.chapters__link--prev {
+		grid-column: 1;
+	}
+
+	.chapters__link--home {
+		grid-column: 2;
+		text-align: center;
+	}
+
+	.chapters__link--next {
+		grid-column: 3;
+		text-align: right;
+	}
+
+	/* Three cells of display type won't sit side by side on a phone; stacked,
+	   they read in the order they appear, so the columns are dropped instead of
+	   reflowed. */
+	@media (max-width: 34rem) {
+		.chapters {
+			grid-template-columns: 1fr;
+		}
+
+		.chapters__link {
+			grid-column: 1;
+			text-align: left;
+		}
+	}
+</style>

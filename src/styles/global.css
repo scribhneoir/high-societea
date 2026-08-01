@@ -1,0 +1,769 @@
+/* === Tokens ============================================================ */
+
+:root {
+	--carbon-black: hsla(0, 0%, 10%, 1);
+	--fern: hsla(126, 25%, 40%, 1);
+	--clay-soil: hsla(6, 25%, 40%, 1);
+	--bone: hsla(37, 23%, 82%, 1);
+
+	--fern-deep: hsla(126, 25%, 28%, 1);
+	--fern-light: hsla(126, 22%, 58%, 1);
+	--clay-soil-light: hsla(6, 30%, 58%, 1);
+	--bone-light: hsla(37, 26%, 90%, 1);
+	--carbon-soft: hsla(0, 0%, 16%, 1);
+
+	--surface: var(--bone);
+	--surface-raised: var(--bone-light);
+	--ink: var(--carbon-black);
+	--ink-muted: hsla(0, 0%, 10%, 0.66);
+	--title: var(--fern-deep);
+	--accent: var(--clay-soil);
+	--rule: hsla(0, 0%, 10%, 0.38);
+	--rule-soft: hsla(0, 0%, 10%, 0.16);
+
+	/* The noise is a mask, so the tint is the colour you actually see: dark
+	   speckles on the bone sheet, bone speckles on carbon. */
+	--paper-tint: var(--carbon-black);
+	--paper-grain: 0.13;
+	--paper-blotch: 0.07;
+
+	--font-body: var(--font-crimson-pro), Georgia, 'Times New Roman', serif;
+	--font-display: var(--font-eczar), Georgia, serif;
+	--font-caps: var(--font-archivo), 'Helvetica Neue', Arial, sans-serif;
+	--font-grunge: var(--font-manufacturing-consent), Impact, sans-serif;
+	--font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+	/* Swapping the display face means these three move with it, so they live
+	   beside it rather than at their point of use: headings and the sunk capital
+	   read them. Weights because a one-weight display face would otherwise be
+	   asked for 800 and (font-synthesis-weight: none) silently stay at 400; the
+	   cap-height because the cap's size is derived from it. */
+	--weight-display: 600;
+	--weight-display-strong: 700;
+	--font-display-cap: 0.65; /* Eczar, 650/1000 */
+
+	--leading-body: 1.45;
+	--leading-tight: 1.32;
+
+	/* rem, not em: an em step resolves against each element's own font-size, so
+	   one value gives a different gap on every element — which is no rhythm. */
+	--space-section: 2.5rem;
+	--space-sub: 1.75rem;
+	--space-block: 1.15rem;
+
+	--measure: 34rem;
+	--gutter: clamp(1.5rem, 4vw, 3.5rem);
+	--column-gap: clamp(2rem, 5vw, 4.5rem);
+	--page-max: 72rem;
+
+	/* Per theme, not `light dark`: announcing both lets the UA paint its own
+	   dark canvas under a light page, which flashes before the real one lands. */
+	color-scheme: light;
+}
+
+/* Follows the system by default; data-theme on <html> forces either way. The
+   two blocks repeat because a media condition can't go in a selector list. */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--surface: var(--carbon-black);
+		--surface-raised: var(--carbon-soft);
+		--ink: var(--bone);
+		--ink-muted: hsla(37, 23%, 82%, 0.62);
+		--title: var(--fern-light);
+		--accent: var(--clay-soil-light);
+		--rule: hsla(37, 23%, 82%, 0.34);
+		--rule-soft: hsla(37, 23%, 82%, 0.14);
+
+		--paper-tint: var(--bone);
+		--paper-grain: 0.1;
+		--paper-blotch: 0.05;
+
+		color-scheme: dark;
+	}
+}
+
+:root[data-theme='dark'] {
+	--surface: var(--carbon-black);
+	--surface-raised: var(--carbon-soft);
+	--ink: var(--bone);
+	--ink-muted: hsla(37, 23%, 82%, 0.62);
+	--title: var(--fern-light);
+	--accent: var(--clay-soil-light);
+	--rule: hsla(37, 23%, 82%, 0.34);
+	--rule-soft: hsla(37, 23%, 82%, 0.14);
+
+	--paper-tint: var(--bone);
+	--paper-grain: 0.1;
+	--paper-blotch: 0.05;
+
+	color-scheme: dark;
+}
+
+/* === Base ============================================================== */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+/* Painted on <html> too, so the canvas can't fall back to the UA default while
+   the page is still settling. */
+html {
+	-webkit-text-size-adjust: 100%;
+	background-color: var(--surface);
+	color: var(--ink);
+}
+
+body {
+	margin: 0;
+	min-height: 100dvh;
+	background-color: var(--surface);
+	color: var(--ink);
+	font-family: var(--font-body);
+	font-size: clamp(1.0625rem, 0.55vw + 0.94rem, 1.1875rem);
+	font-weight: 400;
+	line-height: var(--leading-body);
+	font-synthesis-weight: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+svg,
+video {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+/* === Paper texture =====================================================
+
+   Noise used as a mask over a flat tint, so one texture works on both the bone
+   sheet and carbon without blend modes. Two requirements for seamless tiling,
+   and missing either shows up as visible seams:
+
+   1. filterUnits='userSpaceOnUse' pins the filter region to the tile.
+      stitchTiles matches the lattice across the edges of the *filter region*,
+      which otherwise defaults to 120% of the element — a 120% tile that the
+      100% mask then crops through the middle of.
+   2. baseFrequency x tile size must be a whole number, or the browser rounds
+      the frequency and the pattern drifts off the size the mask is drawn at.
+      Exact here: 0.85 x 320 = 272; 0.0125 x 560 = 7 and 0.7 x 560 = 392.
+
+   The tile sizes share few factors, so the two layers only realign every
+   lcm(320, 560) = 2240px.
+   ======================================================================= */
+
+body::before,
+body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background-color: var(--paper-tint);
+}
+
+body::before {
+	opacity: var(--paper-grain);
+	mask-image:
+		/* fine grain */ url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='g' filterUnits='userSpaceOnUse' x='0' y='0' width='320' height='320'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23g)'/%3E%3C/svg%3E"),
+		/* laid fibres */ url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='560'%3E%3Cfilter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='560' height='560'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0125 0.7' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='560' height='560' filter='url(%23f)'/%3E%3C/svg%3E");
+	mask-size: 320px 320px, 560px 560px;
+	mask-repeat: repeat;
+}
+
+/* Blotches this wide would read as a repeating stamp at any tile size that
+   fits on screen, so this layer is one sheet scaled to cover instead. */
+body::after {
+	opacity: var(--paper-blotch);
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'%3E%3Cfilter id='v' filterUnits='userSpaceOnUse' x='0' y='0' width='1200' height='1200'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0035' numOctaves='5' seed='11'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='1200' height='1200' filter='url(%23v)'/%3E%3C/svg%3E");
+	mask-size: cover;
+	mask-repeat: no-repeat;
+	mask-position: center;
+}
+
+body > * {
+	position: relative;
+	z-index: 1;
+}
+
+/* === Typography ======================================================== */
+
+/* h5 and h6 are listed for their margins as much as anything: left out, they
+   keep the UA's em-based ones (h6 ships with 2.33em bottom). */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-display);
+	color: var(--title);
+	font-weight: var(--weight-display);
+	line-height: 1.1;
+	text-wrap: balance;
+	margin: 0 0 0.5em;
+}
+
+/* The scale starts at the section heading, not the page title: a page's title is
+   the masthead's, which the layout sizes itself, so `#` in the content is the
+   largest heading the body ever sets. */
+h1 {
+	font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+}
+
+h2 {
+	font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+}
+
+h3 {
+	font-size: 1.15rem;
+}
+
+h4 {
+	font-size: 1.05rem;
+}
+
+h5 {
+	font-size: 0.95rem;
+}
+
+h6 {
+	font-size: 0.9rem;
+}
+
+/* === Display wear ======================================================
+
+   A little tooth on everything set in Eczar, so the display face shares the
+   masthead's printed feel without borrowing its blackletter. Same recipe as the
+   paper above — fine speckle multiplied by coarse blotches, and the same two
+   tiling rules — but here the noise masks the glyphs themselves, so the texture
+   eats into the ink rather than sitting over it. 0.8 x 320 = 256 and
+   0.025 x 320 = 8, both whole.
+
+   The alpha curve is a hard threshold, not a fade: slope 14 takes the noise from
+   0 to 1 across a band about 0.07 wide, so the mask punches clean holes rather
+   than thinning the ink evenly — which at this size would read as blur, not
+   wear. How many holes is set by where that band sits, and the only number to
+   touch is the intercept:
+
+     intercept = -14 x cut,  cut 0.14 (barely marked) .. 0.48 (heavily eaten)
+
+   0.22 here. GrungeTitle runs the same chain at 0.276 for the masthead, so
+   raising this walks the headings toward that — worth stopping short of it, or
+   the headings start competing with the title rather than answering it.
+
+   The speckle is coarser than the paper's: features want to be a few px against
+   a 40-64px cap height, so 0.35 x 320 = 112. Finer than that and the holes fall
+   below the glyph's own edge softening and vanish.
+
+   mask-clip: no-clip because the tight heading line-height leaves the border box
+   shorter than the letterforms, and a mask clips to that box by default, which
+   shears the ascenders and descenders off.
+   ======================================================================= */
+
+:root {
+	--texture-display: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='w' filterUnits='userSpaceOnUse' x='0' y='0' width='320' height='320'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35' numOctaves='4' seed='5' stitchTiles='stitch' result='fine'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.025' numOctaves='3' seed='19' stitchTiles='stitch' result='coarse'/%3E%3CfeComposite in='fine' in2='coarse' operator='arithmetic' k1='0.9' k2='0.35' k3='0.35' k4='0' result='mix'/%3E%3CfeColorMatrix in='mix' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='14' intercept='-3.08'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23w)'/%3E%3C/svg%3E");
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	mask-image: var(--texture-display);
+	mask-size: 320px 320px;
+	mask-repeat: repeat;
+	mask-clip: no-clip;
+}
+
+p {
+	margin: 0 0 var(--space-block);
+	max-width: var(--measure);
+	hanging-punctuation: first last;
+
+	/* Narrow serif columns rag badly without hyphenation. The limits stop it
+	   breaking short words or leaving two-letter stubs. */
+	hyphens: auto;
+	hyphenate-limit-chars: 7 4 3;
+	text-wrap: pretty;
+}
+
+p:last-child {
+	margin-bottom: 0;
+}
+
+a {
+	color: var(--accent);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.18em;
+	text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+	transition: text-decoration-color 120ms ease;
+}
+
+a:hover {
+	text-decoration-color: currentColor;
+}
+
+strong,
+b {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+em {
+	font-style: italic;
+}
+
+blockquote {
+	margin: var(--space-sub) 0;
+	padding-left: 1.25rem;
+	border-left: 2px solid var(--accent);
+	font-size: 1.15em;
+	font-style: italic;
+	line-height: var(--leading-tight);
+	color: var(--ink-muted);
+}
+
+hr {
+	border: 0;
+	border-top: 1px solid var(--rule);
+	margin: var(--space-section) 0;
+}
+
+::selection {
+	background: color-mix(in srgb, var(--fern) 35%, transparent);
+	color: var(--ink);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.eyebrow {
+	font-family: var(--font-caps);
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.32em;
+	color: var(--ink-muted);
+}
+
+/* === Layout ============================================================ */
+
+.page {
+	max-width: var(--page-max);
+	margin-inline: auto;
+	padding: clamp(2rem, 6vw, 4.5rem) var(--gutter);
+
+	/* The display title sets white-space: nowrap, so an oversized one pushes the
+	   page sideways rather than wrapping. `clip` not `hidden`: hidden would force
+	   overflow-y to auto and scroll away the descenders meant to hang out. */
+	overflow-x: clip;
+}
+
+.prose-columns {
+	column-count: 1;
+	column-gap: var(--column-gap);
+}
+
+@media (min-width: 48rem) {
+	.prose-columns {
+		column-count: 2;
+	}
+
+	/* Inside a column the column *is* the measure — leaving --measure on would
+	   inset the text and strand a gap against the column edge. */
+	.prose-columns :is(p, ul, ol, pre, table, blockquote) {
+		max-width: none;
+	}
+
+}
+
+.prose-columns :is(h1, h2, h3, h4, h5, h6) {
+	break-after: avoid;
+	break-inside: avoid;
+}
+
+.prose-columns :is(pre, table, figure, blockquote) {
+	break-inside: avoid;
+}
+
+.prose-columns p {
+	orphans: 2;
+	widows: 2;
+}
+
+/* === Split pages =======================================================
+
+   Two tracks side by side, split where the page put
+   `<div class="column-break"></div>`. The marker and the two `.column`
+   wrappers around it come from the columns plugin — see it for why this is a
+   grid of real boxes rather than a forced break in a multi-column layout.
+
+   Grid, not `.prose-columns`: a multi-column layout would fragment the tracks
+   across its own columns. A page using this asks for `columns: false`.
+   ======================================================================= */
+
+@media (min-width: 48rem) {
+	.prose .columns {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: var(--column-gap);
+
+		/* Tracks are independent — each starts at the top and runs as far as its
+		   own content, rather than stretching to match the taller one. */
+		align-items: start;
+	}
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* === Prose — Markdown-generated content ================================
+
+   Markdown can only emit bare elements, so every treatment the design has must
+   be reachable from one. `#` gives the display-face section heading styled above;
+   `##` gives the ruled all-caps subheading below. Headings carry their own top
+   margin here because Markdown leaves no wrapper to hang spacing off.
+   ======================================================================= */
+
+/* Tight below: the section heading should read as attached to the text it
+   opens, with the space-section gap above doing the separating. */
+.prose h1 {
+	margin-top: var(--space-section);
+	margin-bottom: 0.1em;
+}
+
+.prose :is(h3, h4, h5, h6) {
+	margin-top: var(--space-sub);
+}
+
+/* Archivo, not Eczar — so it drops the wear along with the display face. Same
+   for h4-h6 below, which fall back to the body face. */
+.prose h2 {
+	font-family: var(--font-caps);
+	mask-image: none;
+	font-size: clamp(0.7rem, 0.3vw + 0.63rem, 0.8rem);
+	font-weight: 500;
+	line-height: 1;
+	color: var(--title);
+	text-transform: uppercase;
+	letter-spacing: 0.42em;
+	margin: var(--space-section) 0 1.5rem;
+	padding: 0.85em 0;
+	border-top: 1px solid var(--rule);
+	border-bottom: 1px solid var(--rule);
+	max-width: none;
+	text-wrap: balance;
+}
+
+/* A heading straight after another opens the same section, so it keeps the tight
+   spacing of the one above rather than adding its own separating margin on top
+   — the heading before it has already done the separating. */
+.prose :is(h1, h2, h3, h4, h5, h6) + :is(h1, h2, h3, h4, h5, h6) {
+	margin-top: 0;
+}
+
+/* Each track opens its own page as far as spacing goes, so a heading leading
+   one doesn't start sunk by a section margin. */
+:is(.prose, .prose .column) > :first-child {
+	margin-top: 0;
+}
+
+.prose :is(h4, h5, h6) {
+	font-family: var(--font-body);
+	mask-image: none;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--ink);
+	letter-spacing: 0.01em;
+}
+
+.prose :is(h5, h6) {
+	color: var(--ink-muted);
+}
+
+/* Markdown can't put a class on its own opening paragraph, so the layout marks
+   the wrapper from frontmatter and the paragraph is selected from there. On a
+   split page the opening paragraph sits one level down, inside the first track —
+   hence the second arm of each :is() below. */
+:is(.prose-lead, .prose-lead .column:first-child) > p:first-of-type {
+	font-size: 1.2em;
+	line-height: var(--leading-tight);
+	color: var(--ink);
+}
+
+/* Sunk capital. Two things have to line up, and both are computed rather than
+   picked so neither drifts when the leading changes:
+
+   1. The float's BOX must be a whole number of line boxes — text wraps around
+      the box, so a fractional one leaves its last line indented beside nothing.
+   2. The GLYPH must fill that box, reaching from the first line's cap-top to
+      the Nth baseline.
+
+   Float-only, no `initial-letter` branch: that would size the cap by a second
+   mechanism in the browsers that support it, so the page would need checking
+   twice, and the float path is exact once both numbers are derived. */
+:is(.prose-dropcap, .prose-dropcap .column:first-child) > p:first-of-type {
+	--dropcap-lines: 3;
+	--dropcap-leading: var(--leading-body);
+
+	/* Read out of the font files, normalised to the em. (Both set
+	   USE_TYPO_METRICS and their hhea and typo values agree, so there's no
+	   ambiguity about which the browser uses.)
+	     Crimson Pro  cap 587/1024, asc 918/1024, desc 220/1024 */
+	--dropcap-cap-body: 0.5732;
+	--dropcap-asc-body: 0.8965;
+	--dropcap-desc-body: 0.2148;
+	--dropcap-cap-display: var(--font-display-cap);
+
+	/* Manual adjustment, in paragraph em; positive sinks the cap further. The
+	   line-height below subtracts it, so nudging can't put the float box off a
+	   whole number of lines. */
+	--dropcap-nudge: 0;
+
+	/* Cap-top to Nth baseline is (lines - 1) leading plus the body font's cap
+	   height; the ratio of the two fonts' cap heights turns that into a size. */
+	--dropcap-scale: calc(
+		((var(--dropcap-lines) - 1) * var(--dropcap-leading) + var(--dropcap-cap-body)) /
+			var(--dropcap-cap-display)
+	);
+
+	/* How far below the float box's top the first line's cap-top sits:
+	   half-leading + ascent - cap-height, all of the body font. */
+	--dropcap-sink: calc(
+		var(--dropcap-leading) / 2 + (var(--dropcap-asc-body) - var(--dropcap-desc-body)) / 2 -
+			var(--dropcap-cap-body)
+	);
+}
+
+/* The cap's box is derived from the leading, so it has to divide into whichever
+   value the paragraph is actually set at. */
+:is(.prose-lead.prose-dropcap, .prose-lead.prose-dropcap .column:first-child)
+	> p:first-of-type {
+	--dropcap-leading: var(--leading-tight);
+}
+
+/* A span put there by the satteri-dropcap plugin rather than ::first-letter: that
+   pseudo-element only takes a subset of properties and drops `mask`, which left
+   the cap the one piece of display type with no wear on it. Descendant, not
+   child, because the letter may sit inside a <strong> or a link.
+
+   Floating the span gives the same block box the floated pseudo-element did, so
+   the geometry below is unchanged. */
+:is(.prose-dropcap, .prose-dropcap .column:first-child)
+	> p:first-of-type
+	.dropcap-letter {
+	font-family: var(--font-display);
+	font-weight: var(--weight-display);
+	color: var(--title);
+	float: left;
+	font-size: calc(var(--dropcap-scale) * 1em);
+
+	/* A floated cap lands with its cap-top at the top of the float box; the first
+	   line's cap-top sits lower. Without this the cap rides high by that
+	   difference and its baseline misses the Nth line.
+
+	   Divided by the scale because em in padding resolves against this element's
+	   own font-size, which is --dropcap-scale times the paragraph's, so a
+	   paragraph-em figure lands ~5x too deep otherwise. (font-size is the
+	   exception — its em resolves against the parent.) */
+	padding: calc((var(--dropcap-sink) + var(--dropcap-nudge)) / var(--dropcap-scale) * 1em)
+		0.08em 0 0;
+
+	/* Border box = padding + content and must come to `lines` line boxes, so the
+	   content height is whatever the sink leaves over. */
+	line-height: calc(
+		(
+				var(--dropcap-lines) * var(--dropcap-leading) - var(--dropcap-sink) -
+					var(--dropcap-nudge)
+			) / var(--dropcap-scale)
+	);
+
+	/* Same wear as the headings, at the same tile size rather than a scaled one:
+	   it is one press on one sheet, so a bigger letter should show proportionally
+	   finer erosion, not the same amount blown up. */
+	mask-image: var(--texture-display);
+	mask-size: 320px 320px;
+	mask-repeat: repeat;
+	mask-clip: no-clip;
+}
+
+/* Markers sit inside the list's indent rather than hanging into the margin,
+   where the two-column layout would put them in the column gap. */
+.prose :is(ul, ol) {
+	max-width: var(--measure);
+	margin: 0 0 var(--space-block);
+	padding-left: 1.4em;
+}
+
+.prose li + li {
+	margin-top: 0.35em;
+}
+
+.prose li :is(ul, ol) {
+	margin: 0.35em 0 0;
+}
+
+.prose ul {
+	list-style: none;
+}
+
+.prose ul > li {
+	position: relative;
+}
+
+/* Aligned optically rather than sat on the text baseline. */
+.prose ul > li::before {
+	content: '';
+	position: absolute;
+	left: -1.1em;
+	top: 0.62em;
+	width: 0.32em;
+	height: 0.32em;
+	border-radius: 50%;
+	background: var(--title);
+}
+
+.prose ol {
+	list-style: decimal;
+}
+
+.prose ol > li::marker {
+	color: var(--title);
+	font-variant-numeric: tabular-nums;
+}
+
+.prose :is(code, kbd, samp) {
+	font-family: var(--font-mono);
+	font-size: 0.86em;
+}
+
+.prose :not(pre) > code {
+	padding: 0.15em 0.4em;
+	border-radius: 3px;
+	background: var(--surface-raised);
+	border: 1px solid var(--rule-soft);
+	overflow-wrap: break-word;
+}
+
+/* Code must not wrap, so it scrolls in its own box rather than pushing the page
+   sideways — same reasoning as .page's overflow-x. Tables below likewise. */
+.prose pre {
+	max-width: var(--measure);
+	margin: 0 0 var(--space-block);
+	padding: 1em 1.15em;
+	border: 1px solid var(--rule-soft);
+	border-left: 2px solid var(--title);
+	background: var(--surface-raised);
+	line-height: 1.5;
+	overflow-x: auto;
+	tab-size: 2;
+}
+
+.prose pre code {
+	padding: 0;
+	border: 0;
+	background: none;
+	white-space: pre;
+}
+
+.prose table {
+	width: 100%;
+	max-width: var(--measure);
+	margin: 0 0 var(--space-block);
+	border-collapse: collapse;
+	font-size: 0.95em;
+}
+
+.prose :is(th, td) {
+	padding: 0.55em 0.8em 0.55em 0;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--rule-soft);
+}
+
+.prose th {
+	font-family: var(--font-caps);
+	font-size: 0.72em;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	color: var(--title);
+	border-bottom: 1px solid var(--rule);
+}
+
+.prose figure {
+	margin: var(--space-sub) 0;
+}
+
+.prose figcaption {
+	margin-top: 0.6em;
+	font-size: 0.9em;
+	font-style: italic;
+	color: var(--ink-muted);
+}
+
+.prose :is(img, video) {
+	border-radius: 2px;
+}
+
+/* === Epigraphs =========================================================
+
+   A quotation standing at the head of a chapter or a section. Deliberately
+   unlike the blockquote above, which the pages use for rules asides: the two
+   are different kinds of interruption, and sharing a treatment would have
+   them read as one. So the accent bar goes, and the attribution takes the
+   masthead's small caps — furniture rather than commentary.
+   ======================================================================= */
+
+.prose .epigraph {
+	max-width: var(--measure);
+	margin: var(--space-sub) 0;
+}
+
+.prose .epigraph blockquote {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 1.05em;
+}
+
+/* The section headings are set tight to the text they open; an epigraph after
+   one belongs to that heading, so it keeps that gap rather than opening its
+   own. Its own bottom margin does the separating below. */
+.prose :is(h1, h2, h3, h4, h5, h6) + .epigraph {
+	margin-top: 0.8rem;
+}
+
+/* Tighter than .eyebrow's tracking: an attribution runs several times the
+   length of a chapter label, and at 0.32em it wraps twice inside a column. */
+.prose .epigraph figcaption {
+	margin-top: 0.7em;
+	font-family: var(--font-caps);
+	font-size: 0.68rem;
+	font-style: normal;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	color: var(--ink-muted);
+}
+
+.prose .epigraph cite {
+	font-style: italic;
+}

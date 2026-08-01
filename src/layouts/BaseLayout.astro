@@ -1,0 +1,47 @@
+---
+import { Font } from 'astro:assets';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		{description && <meta name="description" content={description} />}
+
+		<Font cssVariable="--font-manufacturing-consent" preload />
+		<Font cssVariable="--font-eczar" preload />
+		<Font cssVariable="--font-crimson-pro" preload />
+		<Font cssVariable="--font-archivo" />
+
+		<title>{title}</title>
+
+		{/* Inline and in the head, so a stored choice is on <html> before the first
+		    paint — deferred, it would repaint the page in the other theme after
+		    the reader has already seen it. Absent or unreadable storage leaves the
+		    attribute off, which is the auto state the stylesheet defaults to. */}
+		<script is:inline>
+			try {
+				const stored = localStorage.getItem('theme');
+				if (stored === 'light' || stored === 'dark') {
+					document.documentElement.dataset.theme = stored;
+				}
+			} catch {}
+		</script>
+	</head>
+	<body>
+		<ThemeToggle />
+		<slot />
+	</body>
+</html>

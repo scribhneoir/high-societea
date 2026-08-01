@@ -1,0 +1,131 @@
+---
+interface Props {
+    first?: string;
+    second?: string;
+    firstColor?: string;
+    color?: string;
+    size?: string;
+    tilt?: number;
+    wordTilt?: number;
+    overlap?: number;
+    stagger?: number;
+    grunge?: number;
+    seed?: number;
+}
+
+const {
+    first = "High",
+    second = "Societea",
+    firstColor = "var(--ink)",
+    color = "var(--title)",
+    size = "clamp(3rem, 13vw, 10rem)",
+    tilt = -4,
+    wordTilt = 3,
+    overlap = 0.3,
+    stagger = 0.2,
+    grunge = 0.4,
+    seed = 3,
+} = Astro.props;
+
+const TILE = 400;
+
+/** Fine speckle multiplied by coarse blotches, then hard-contrasted so the dark
+ *  patches punch holes clean through the letterforms. */
+function grungeMask(s: number): string {
+    const cut = 0.14 + grunge * 0.34;
+    const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${TILE}" height="${TILE}">` +
+        `<filter id="g" x="0" y="0" width="100%" height="100%">` +
+        `<feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="5" seed="${s}" stitchTiles="stitch" result="fine"/>` +
+        `<feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="${s + 17}" stitchTiles="stitch" result="coarse"/>` +
+        `<feComposite in="fine" in2="coarse" operator="arithmetic" k1="0.9" k2="0.35" k3="0.35" k4="0" result="mix"/>` +
+        `<feColorMatrix in="mix" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/>` +
+        `<feComponentTransfer><feFuncA type="linear" slope="14" intercept="${(-14 * cut).toFixed(3)}"/></feComponentTransfer>` +
+        `</filter>` +
+        `<rect width="100%" height="100%" filter="url(#g)"/>` +
+        `</svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+// One texture per word, so no two words wear away identically.
+const words = [
+    { text: first, color: firstColor, rotate: 0, mask: grungeMask(seed) },
+    { text: second, color, rotate: wordTilt, mask: grungeMask(seed + 7) },
+];
+---
+
+<h1
+    class="grunge-title"
+    style={{
+        "--gt-size": size,
+        "--gt-tilt": `${tilt}deg`,
+        "--gt-overlap": `${overlap}em`,
+        "--gt-stagger": `${stagger}em`,
+        "--gt-mask-size": `${TILE}px`,
+    }}
+>
+    <span class="sr-only">{first} {second}</span>
+
+    <span class="words" aria-hidden="true">
+        {
+            words.map((word, i) => (
+                <span
+                    class:list={["word", { "word--second": i === 1 }]}
+                    style={{ color: word.color, rotate: `${word.rotate}deg` }}
+                >
+                    <span class="print" style={{ "mask-image": word.mask }}>
+                        {word.text}
+                    </span>
+                </span>
+            ))
+        }
+    </span>
+</h1>
+
+<style>
+    /* This is an h1, so it would otherwise pick up the display wear from
+       global.css and carry it on top of the per-word masks below. */
+    .grunge-title {
+        mask-image: none;
+
+        display: inline-block;
+        margin: 0;
+        font-family: var(--font-grunge);
+        font-size: var(--gt-size);
+        font-weight: 400;
+        line-height: 0.82;
+        rotate: var(--gt-tilt);
+    }
+
+    .words {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .word {
+        position: relative;
+        display: block;
+        transform-origin: 20% 60%;
+    }
+
+    .word--second {
+        margin-top: calc(var(--gt-overlap) * -1);
+        margin-left: var(--gt-stagger);
+    }
+
+    /* The tight line-height leaves the border box shorter than the letterforms,
+	   and a mask clips to that box by default — hence `no-clip`, plus padding
+	   that grows the box out to the blackletter's tails and a matching negative
+	   margin that takes the space back out of the flow. */
+    .print {
+        display: block;
+        white-space: nowrap;
+        padding: 0.14em 0.12em 0.3em;
+        margin: -0.14em -0.12em -0.3em;
+        mask-clip: no-clip;
+        mask-repeat: repeat;
+        mask-position: center;
+        mask-size: var(--gt-mask-size);
+    }
+</style>
