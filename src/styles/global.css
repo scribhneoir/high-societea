@@ -472,6 +472,65 @@ hr {
 	text-wrap: balance;
 }
 
+/* A chapter heading that is itself the link to its chapter. The colour stays
+   the heading's own — an accent-coloured h2 would read as a different sort of
+   heading rather than the same one made clickable — so the arrow carries the
+   signal instead.
+
+   The rules stay on the heading and the padding moves inside the link, so the
+   hit area is the whole ruled row rather than just the words — a block anchor
+   alone would span the width but stop short of the padding above and below. */
+.prose h2:has(a) {
+	padding: 0;
+}
+
+.prose h2 a {
+	display: block;
+	padding: 0.85em 0;
+	color: inherit;
+	text-decoration: none;
+}
+
+/* The heading's 0.42em tracking would otherwise apply after the arrow too,
+   pushing it off its own right edge; cleared, it sits against the word it
+   follows. inline-block so the hover nudge has something to move. */
+.prose h2 a::after {
+	content: '›';
+
+	/* Set larger than the heading: at the heading's own size the chevron is a
+	   hairline, and unlike a letterform it carries no weight of its own to
+	   read by. The margin and nudge below are in its em, hence the small
+	   figures. */
+	font-size: 1.4em;
+
+	/* The glyph is drawn centred on the font's lowercase axis, but it stands
+	   beside uppercase, whose middle is higher — and scaling it up lifts its
+	   centre further still, which is what leaves it riding above the line.
+	   Positive drops it. In the chevron's own em, so the figure is smaller
+	   than it looks against the heading. */
+	--chevron-drop: 0.07em;
+
+	display: inline-block;
+	vertical-align: calc(-1 * var(--chevron-drop));
+	margin-left: 0.15em;
+	letter-spacing: normal;
+	transition: transform 120ms ease;
+}
+
+.prose h2 a:hover::after {
+	transform: translateX(0.18em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.prose h2 a::after {
+		transition: none;
+	}
+
+	.prose h2 a:hover::after {
+		transform: none;
+	}
+}
+
 /* A heading straight after another opens the same section, so it keeps the tight
    spacing of the one above rather than adding its own separating margin on top
    — the heading before it has already done the separating. */

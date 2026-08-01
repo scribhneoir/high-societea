@@ -5,6 +5,9 @@ import satteriDropcap from './src/lib/satteri-dropcap.mjs';
 import satteriColumns from './src/lib/satteri-columns.mjs';
 
 export default defineConfig({
+  // Served at the root of its own subdomain, so no `base` — the absolute links
+  // the pages already use (/arrival, /gala) resolve as written.
+  site: 'https://hs.scribhneoir.com',
   markdown: {
     processor: satteri({ hastPlugins: [satteriDropcap, satteriColumns] }),
   },
