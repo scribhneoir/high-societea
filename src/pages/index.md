@@ -26,7 +26,7 @@ is laid bare.
 High Societea is played by five to eight people, one of whom takes the role
 of the Host. An evening lasts some two to three hours.
 
-The table will need a pair of modified D6 dice, a deck of aspiration cards, a
+The table will need a pair of D6 dice, a deck of aspiration cards, a
 supply of index cards on which to write secrets and discoveries, and a quantity of 
 coin for the guests to carry, bestow, and be bought with.
 
@@ -41,9 +41,9 @@ safety conversation, and the five secrets every guest hands to the Host.
 
 ## [Chapter Two • The Gala](/gala)
 
-The party, the rounds and their dances, and every way a guest may cut another
-down: attacks and retorts, faux pas, sold secrets, crafted rumors, and
-outbursts.
+The party, the rounds and their dances, the offering of hands in marriage, and
+every way a guest may cut another down: attacks and retorts, faux pas, sold
+secrets, crafted rumors, and outbursts.
 
 ## [Chapter Three • The Dinner](/dinner)
 
@@ -57,5 +57,4 @@ of another guest.
 
 ## [Appendix • Discoveries](/discoveries)
 
-A house already furnished, with things to be found in the conservatory, the
-library, the terrace, and the card room.
+A house already furnished, with things to be found in every room.

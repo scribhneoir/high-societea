@@ -1,7 +1,7 @@
 ---
 layout: ../layouts/MarkdownLayout.astro
 title: The Gala
-description: The rounds of the evening — conversation, dancing, attacks, faux pas, sold secrets, and outbursts.
+description: The rounds of the evening — conversation, dancing, proposals, attacks, faux pas, sold secrets, and outbursts.
 eyebrow: Chapter Two
 dropcap: true
 prev:
@@ -35,6 +35,7 @@ A character's action is the one thing they do with that company. They may:
 
 - Attack another character
 - Ask another character to dance
+- Ask for another character's hand in marriage
 - Sell a secret
 - Explore the gala, if they are not otherwise engaged
 - Speak, and nothing more
@@ -69,6 +70,41 @@ they may roll with advantage.
 If both players succeed, each gains two reputation points. If both fail,
 each player loses one reputation point. If one succeeds and the other does
 not, the dance passes without remark, and neither gains nor loses.
+
+# On Proposals of Marriage
+
+A character may ask for the hand of another, provided **the two have partnered a
+dance at some point in the evening**. An offer to a guest one has never stood up
+with is no offer at all, and the room would think very little of it.
+
+If the proposal is accepted, each partner gains three reputation points and the
+two are engaged to be married. If it is refused, the asking character loses two
+reputation points, though they may roll below their own Charm to have the
+refusal pass unremarked and lose nothing by it.
+
+A character may be engaged to only one other at a time, and a character already
+engaged may not accept a second offer while the first stands.
+
+## Being Engaged
+
+From the moment an engagement is made, the fortunes of the two are tied.
+**When one partner gains or loses reputation, the other gains or loses the
+same.** Each takes their share out of their own stats, or pays it from their own
+purse, as they see fit.
+
+This sharing resolves once and does not run back and forth between them. A loss
+suffered by one is felt by the other, and there the matter ends.
+
+An attack is the one exception. It falls upon the stat of the guest attacked and
+nowhere else, and their partner feels nothing of it. A couple would be twice as
+easy to ruin otherwise.
+
+## Breaking It Off
+
+Either partner may break the engagement on their turn. The tie between them ends
+at once, and only then are the costs reckoned: the one who breaks it loses five
+reputation points, and the one who is jilted loses three, for the room will talk
+about them both. Neither loss is shared, the engagement being over.
 
 # On Exploration
 
