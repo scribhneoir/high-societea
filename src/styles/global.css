@@ -160,7 +160,14 @@ body::before,
 body::after {
 	content: '';
 	position: fixed;
-	inset: 0;
+	inset: 0 0 auto 0;
+	/* Not `bottom: 0`: fixed offsets resolve against the initial containing
+	   block, which on mobile is the small viewport, so the sheet stops short
+	   and leaves bare --surface at the bottom once the toolbars retract.
+	   Sizing to the large viewport covers both states — fixed elements add no
+	   scrollable overflow, so the spare height costs nothing. */
+	height: 100vh;
+	height: 100lvh;
 	z-index: 0;
 	pointer-events: none;
 	background-color: var(--paper-tint);
